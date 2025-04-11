@@ -289,6 +289,10 @@ class BotConfig:
 
     api_urls: Dict[str, str] = field(default_factory=lambda: {})
 
+    # 定时消息
+    timed_messages_enable: bool = False
+    timed_messages_schedules: List[Dict] = field(default_factory=list)
+
     @staticmethod
     def get_config_dir() -> str:
         """获取配置文件目录"""
@@ -586,6 +590,30 @@ class BotConfig:
             config.response_max_sentence_num = response_spliter_config.get(
                 "response_max_sentence_num", config.response_max_sentence_num
             )
+        
+        def timed_messages(parent: dict):
+            """加载定时消息配置"""
+            if "timed_messages" not in parent:
+                return
+                
+            timed_messages_config = parent["timed_messages"]
+            config.timed_messages_enable = timed_messages_config.get("enable", False)
+            
+            if "schedules" in timed_messages_config:
+                schedules = []
+                for schedule in timed_messages_config["schedules"]:
+                    schedules.append({
+                        "user_id": schedule.get("user_id", ""),
+                        "message": schedule.get("message", ""),
+                        "hour": schedule.get("hour", 0),
+                        "minute": schedule.get("minute", 0),
+                        "weekdays": schedule.get("weekdays", [1, 2, 3, 4, 5, 6, 7]),
+                        "dynamic": schedule.get("dynamic", False),  # 是否使用动态生成的消息
+                        "context_size": schedule.get("context_size", 5)  # 使用多少历史消息作为上下文
+                    })
+                config.timed_messages_schedules = schedules
+            
+            logger.info(f"已加载 {len(config.timed_messages_schedules)} 个定时消息计划")
 
         def groups(parent: dict):
             groups_config = parent["groups"]
@@ -640,6 +668,7 @@ class BotConfig:
             "response_spliter": {"func": response_spliter, "support": ">=0.0.11", "necessary": False},
             "experimental": {"func": experimental, "support": ">=0.0.11", "necessary": False},
             "heartflow": {"func": heartflow, "support": ">=1.0.2", "necessary": False},
+            "timed_messages": {"func": timed_messages, "support": ">=0.0.11", "necessary": False},
         }
 
         # 原地修改，将 字符串版本表达式 转换成 版本对象
