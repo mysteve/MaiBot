@@ -16,7 +16,6 @@ from .plugins.chat.bot import chat_bot
 from .common.logger import get_module_logger
 from .plugins.remote import heartbeat_thread  # noqa: F401
 from .individuality.individuality import Individuality
-from .plugins.timed_messages.timed_message_manager import TimedMessageManager
 
 
 logger = get_module_logger("main")
@@ -29,7 +28,6 @@ class MainSystem:
         self.hippocampus_manager = HippocampusManager.get_instance()
         self._message_manager_started = False
         self.individuality = Individuality.get_instance()
-        self.timed_message_manager = TimedMessageManager.get_instance()
 
         # 使用消息API替代直接的FastAPI实例
         from .plugins.message import global_api
@@ -105,10 +103,6 @@ class MainSystem:
             appearance=global_config.appearance
         )
         logger.success("个体特征初始化成功")
-
-        # 启动定时消息管理器
-        await self.timed_message_manager.start()
-        logger.success("定时消息管理器启动成功")
 
         try:
             # 启动心流系统

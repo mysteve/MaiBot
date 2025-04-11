@@ -6,7 +6,6 @@ from src.common.logger import get_module_logger
 from ...common.database import db
 from ..message.api import global_api
 from .message import MessageSending, MessageThinking, MessageSet
-from ..message.message_base import Seg, UserInfo
 
 from ..storage.storage import MessageStorage
 from ..config.config import global_config
@@ -62,7 +61,7 @@ class Message_Sender:
             for recalled_message in recalled_messages:
                 if message.reply_to_message_id == recalled_message["message_id"]:
                     is_recalled = True
-                    logger.warning(f"消息"{message.processed_plain_text}"已被撤回，不发送")
+                    logger.warning(f"消息“{message.processed_plain_text}”已被撤回，不发送")
                     break
             if not is_recalled:
                 # print(message.processed_plain_text + str(message.is_emoji))
@@ -90,9 +89,9 @@ class Message_Sender:
                             await self.send_via_ws(message)
                     else:
                         await self.send_via_ws(message)
-                    logger.success(f"发送消息"{message_preview}"成功")
+                    logger.success(f"发送消息“{message_preview}”成功")
                 except Exception as e:
-                    logger.error(f"发送消息"{message_preview}"失败: {str(e)}")
+                    logger.error(f"发送消息“{message_preview}”失败: {str(e)}")
 
 
 class MessageContainer:
@@ -181,67 +180,6 @@ class MessageManager:
             raise ValueError("无法找到对应的聊天流")
         container = self.get_container(chat_stream.stream_id)
         container.add_message(message)
-        
-    async def send_private_message(self, user_id: str, message: str) -> None:
-        """发送私聊消息
-        
-        Args:
-            user_id: 用户ID
-            message: 消息内容
-        """
-        try:
-            from .chat_stream import chat_manager
-            
-            # 创建聊天流
-            bot_user_info = UserInfo(
-                user_id=global_config.BOT_QQ,
-                user_nickname=global_config.BOT_NICKNAME,
-                platform="qq",  # 默认使用qq平台
-            )
-            
-            user_info = UserInfo(
-                user_id=user_id,
-                user_nickname="用户",
-                platform="qq",  # 默认使用qq平台
-            )
-            
-            # 获取或创建私聊聊天流
-            chat_stream = await chat_manager.get_or_create_stream(
-                platform="qq",
-                user_info=user_info,
-                group_info=None  # 私聊没有群组信息
-            )
-            
-            # 创建消息发送对象
-            message_id = f"timed_{round(time.time(), 2)}"
-            message_segment = Seg(type="text", data=message)
-            
-            # 创建发送消息对象
-            sending_message = MessageSending(
-                message_id=message_id,
-                chat_stream=chat_stream,
-                bot_user_info=bot_user_info,
-                sender_info=user_info,
-                message_segment=message_segment,
-                is_head=True,
-                is_emoji=False,
-                thinking_start_time=time.time()
-            )
-            
-            # 处理消息
-            await sending_message.process()
-            
-            # 发送消息
-            await message_sender.send_message(sending_message)
-            
-            # 存储消息
-            await self.storage.store_message(sending_message, chat_stream)
-            
-            logger.success(f"发送定时私聊消息成功: {message[:30]}...")
-            
-        except Exception as e:
-            logger.error(f"发送定时私聊消息失败: {e}")
-            raise
 
     async def process_chat_messages(self, chat_id: str):
         """处理聊天流消息"""
